@@ -7,14 +7,11 @@ local kong = kong
 -- Grab pluginname from module name
 local plugin_name = ({...})[1]:match("^kong%.plugins%.([^%.]+)")
 
-local KongSessionHandler = BasePlugin:extend()
+local KongSessionHandler = {}
 
 KongSessionHandler.PRIORITY = 1900
 KongSessionHandler.VERSION = "1.0.0"
 
-function KongSessionHandler:new()
-  KongSessionHandler.super.new(self, plugin_name)
-end
 
 function KongSessionHandler:header_filter(conf)
   KongSessionHandler.super.header_filter(self)
@@ -51,7 +48,6 @@ end
 
 
 function KongSessionHandler:access(conf)
-  KongSessionHandler.super.access(self)
   access.execute(conf)
 end
 
