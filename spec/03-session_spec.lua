@@ -55,7 +55,7 @@ describe("Plugin: Session - session.lua", function()
     end
     ngx.req.read_body = function() end
     ngx.var.request_method = "DELETE"
-    
+
     local conf = {
       logout_methods = {"DELETE"},
       logout_post_arg = "session_logout"
