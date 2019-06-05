@@ -9,7 +9,7 @@ local plugin_name = ({...})[1]:match("^kong%.plugins%.([^%.]+)")
 
 local KongSessionHandler = {
   PRIORITY = 1900,
-  VERSION = "1.0.0",
+  VERSION = "1.0.2",
 }
 
 
