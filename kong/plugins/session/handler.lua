@@ -18,7 +18,7 @@ function KongSessionHandler:header_filter(conf)
 
   if not ctx.authenticated_credential then
     -- don't open sessions for anonymous users
-    kong.log.debug("Anonymous: No credential.")
+    kong.log.debug("anonymous: no credential.")
     return
   end
 

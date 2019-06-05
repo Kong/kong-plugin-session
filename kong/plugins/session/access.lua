@@ -33,13 +33,13 @@ function _M.execute(conf)
   local s = session.open_session(conf)
 
   if not s.present then
-    kong.log.debug("Session not present")
+    kong.log.debug("session not present")
     return
   end
 
   -- check if incoming request is trying to logout
   if session.logout(conf) then
-    kong.log.debug("Session logging out")
+    kong.log.debug("session logging out")
     s:destroy()
     return kong.response.exit(200)
   end
@@ -52,13 +52,13 @@ function _M.execute(conf)
                                        load_consumer, cid)
 
   if err then
-    kong.log.err("Error loading consumer: ", err)
+    kong.log.err("could not load consumer: ", err)
     return
   end
 
   -- destroy sessions with invalid consumer_id
   if not consumer then
-    kong.log.debug("No consumer, destroying session")
+    kong.log.debug("failed to find consumer, destroying session")
     return s:destroy()
   end
 
