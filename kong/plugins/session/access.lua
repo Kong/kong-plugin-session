@@ -20,9 +20,9 @@ local function set_consumer(consumer, credential_id)
   set_header(constants.HEADERS.CONSUMER_ID, consumer.id)
   set_header(constants.HEADERS.CONSUMER_CUSTOM_ID, consumer.custom_id)
   set_header(constants.HEADERS.CONSUMER_USERNAME, consumer.username)
-  kong.ctx.authenticated_consumer = consumer
+  kong.ctx.shared.authenticated_consumer = consumer
   if credential_id then
-    kong.ctx.authenticated_credential = { id = credential_id or consumer.id,
+    kong.ctx.shared.authenticated_credential = { id = credential_id or consumer.id,
                                          consumer_id = consumer.id }
     set_header(constants.HEADERS.ANONYMOUS, true)
   end
@@ -65,7 +65,7 @@ function _M.execute(conf)
   s:start()
 
   set_consumer(consumer, credential)
-  kong.ctx.authenticated_session = s
+  kong.ctx.shared.authenticated_session = s
 end
 
 

@@ -7,15 +7,14 @@ local kong = kong
 -- Grab pluginname from module name
 local plugin_name = ({...})[1]:match("^kong%.plugins%.([^%.]+)")
 
-local KongSessionHandler = {}
-
-KongSessionHandler.PRIORITY = 1900
-KongSessionHandler.VERSION = "1.0.0"
+local KongSessionHandler = {
+  PRIORITY = 1900,
+  VERSION = "1.0.0",
+}
 
 
 function KongSessionHandler:header_filter(conf)
-  KongSessionHandler.super.header_filter(self)
-  local ctx = kong.ctx
+  local ctx = kong.ctx.shared
 
   if not ctx.authenticated_credential then
     -- don't open sessions for anonymous users
