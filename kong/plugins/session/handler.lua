@@ -2,6 +2,7 @@ local BasePlugin = require "kong.plugins.base_plugin"
 local access = require "kong.plugins.session.access"
 local session = require "kong.plugins.session.session"
 
+local kong = kong
 
 -- Grab pluginname from module name
 local plugin_name = ({...})[1]:match("^kong%.plugins%.([^%.]+)")
@@ -17,11 +18,11 @@ end
 
 function KongSessionHandler:header_filter(conf)
   KongSessionHandler.super.header_filter(self)
-  local ctx = ngx.ctx
+  local ctx = kong.ctx
 
   if not ctx.authenticated_credential then
     -- don't open sessions for anonymous users
-    ngx.log(ngx.DEBUG, "Anonymous: No credential.")
+    kong.log.debug("Anonymous: No credential.")
     return
   end
 
