@@ -70,12 +70,9 @@ function _M.execute(conf)
     return s:destroy()
   end
 
-  print(require("pl.pretty").write({consumer or 'nah', credential or 'yah'}))
-  set_consumer(consumer, credential)
-  print(require("pl.pretty").write(consumer, credential))
   s:start()
 
-  kong.log.inspect(consumer, credential)
+  set_consumer(consumer, credential)
 
   kong.ctx.shared.authenticated_session = s
 end
