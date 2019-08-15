@@ -18,8 +18,12 @@ local function set_consumer(consumer, credential_id)
   local set_header = kong.service.request.set_header
 
   set_header(constants.HEADERS.CONSUMER_ID, consumer.id)
-  set_header(constants.HEADERS.CONSUMER_CUSTOM_ID, consumer.custom_id)
-  set_header(constants.HEADERS.CONSUMER_USERNAME, consumer.username)
+  if consumer.custom_id then
+    set_header(constants.HEADERS.CONSUMER_CUSTOM_ID, consumer.custom_id)
+  end
+  if consumer.username then
+    set_header(constants.HEADERS.CONSUMER_USERNAME, consumer.username)
+  end
 
   if credential_id then
     local credential = {id = credential_id or consumer.id, consumer_id = consumer.id}
@@ -66,9 +70,13 @@ function _M.execute(conf)
     return s:destroy()
   end
 
+  print(require("pl.pretty").write({consumer or 'nah', credential or 'yah'}))
+  set_consumer(consumer, credential)
+  print(require("pl.pretty").write(consumer, credential))
   s:start()
 
-  set_consumer(consumer, credential)
+  kong.log.inspect(consumer, credential)
+
   kong.ctx.shared.authenticated_session = s
 end
 
