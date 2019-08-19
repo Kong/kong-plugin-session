@@ -16,13 +16,19 @@ end
 
 local function set_consumer(consumer, credential_id)
   local set_header = kong.service.request.set_header
+  local clear_header = kong.service.request.clear_header
 
   set_header(constants.HEADERS.CONSUMER_ID, consumer.id)
   if consumer.custom_id then
     set_header(constants.HEADERS.CONSUMER_CUSTOM_ID, consumer.custom_id)
+  else
+    clear_header(constants.HEADERS.CONSUMER_CUSTOM_ID)
   end
+
   if consumer.username then
     set_header(constants.HEADERS.CONSUMER_USERNAME, consumer.username)
+  else
+    clear_header(constants.HEADERS.CONSUMER_USERNAME)
   end
 
   if credential_id then
