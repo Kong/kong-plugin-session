@@ -1,5 +1,6 @@
 local storage = require "kong.plugins.session.storage.kong"
 local session = require "resty.session"
+local cjson = require "cjson"
 
 
 local kong = kong
@@ -62,7 +63,7 @@ function _M.retrieve_session_data(s)
     return nil, nil
   end
 
-  return s.data[1], s.data[2]
+  return s.data[1], s.data[2], s.data[3]
 end
 
 
@@ -70,13 +71,22 @@ end
 -- @param s - the session
 -- @param consumer - the consumer id
 -- @param credential - the credential id or potentially just the consumer id
-function _M.store_session_data(s, consumer_id, credential_id)
+-- @param groups - table of authenticated_groups e.g. ["1" = "group1", "group1"]
+function _M.store_session_data(s, consumer_id, credential_id, groups)
   if not s then
     return
   end
 
   s.data[1] = consumer_id
   s.data[2] = credential_id
+
+  if groups then
+    -- ensure serialized table is set to array so data is not stored as json
+    -- with mixed type (e.g. object _and_ array).
+    setmetatable(groups, cjson.array_mt)
+    s.data[3] = groups
+  end
+
 end
 
 

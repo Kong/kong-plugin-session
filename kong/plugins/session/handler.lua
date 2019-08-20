@@ -24,6 +24,7 @@ function KongSessionHandler:header_filter(conf)
   local credential_id = credential.id
   local consumer_id = consumer and consumer.id
   local s = kong.ctx.shared.authenticated_session
+  local groups = kong.client.get_authenticated_groups()
 
   -- if session exists and the data in the session matches the ctx then
   -- don't worry about saving the session data or sending cookie
@@ -39,7 +40,8 @@ function KongSessionHandler:header_filter(conf)
   -- create new session and save the data / send the Set-Cookie header
   if consumer_id then
     s = s or session.open_session(conf)
-    session.store_session_data(s, consumer_id, credential_id or consumer_id)
+    session.store_session_data(s, consumer_id, credential_id or consumer_id,
+                               groups)
     s:save()
   end
 end
