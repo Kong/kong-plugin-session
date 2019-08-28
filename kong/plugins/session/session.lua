@@ -79,13 +79,7 @@ function _M.store_session_data(s, consumer_id, credential_id, groups)
 
   s.data[1] = consumer_id
   s.data[2] = credential_id
-
-  if groups then
-    -- ensure serialized table is set to array so data is not stored as json
-    -- with mixed type (e.g. object _and_ array).
-    setmetatable(groups, cjson.array_mt)
-    s.data[3] = groups
-  end
+  s.data[3] = groups
 
 end
 

@@ -20,13 +20,7 @@ local function get_authenticated_groups()
   assert(type(authenticated_groups) == "table",
          "invalid authenticated_groups, a table was expected")
 
-  local groups = {}
-  for i = 1, #authenticated_groups do
-    groups[i] = authenticated_groups[i]
-    groups[authenticated_groups[i]] = authenticated_groups[i]
-  end
-
-  return groups
+  return authenticated_groups
 end
 
 

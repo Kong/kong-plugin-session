@@ -33,6 +33,11 @@ for _, strategy in helpers.each_strategy() do
         hosts = {"httpbin.org"},
       }
 
+      local route4 = bp.routes:insert {
+        paths    = {"/headers"},
+        hosts = {"mockbin.org"},
+      }
+
       assert(bp.plugins:insert {
         name = "session",
         route = {
@@ -60,9 +65,16 @@ for _, strategy in helpers.each_strategy() do
         },
       })
 
+      assert(bp.plugins:insert {
+        name = "session",
+        route = {
+          id = route4.id,
+        },
+      })
+
       bp.plugins:insert {
         name = "ctx-checker",
-        route = { id = route3.id },
+        route = { id = route4.id },
         config = {
           ctx_kind      = "ngx.ctx",
           ctx_set_field = "authenticated_groups",
@@ -104,6 +116,16 @@ for _, strategy in helpers.each_strategy() do
         name = "key-auth",
         route = {
           id = route3.id,
+        },
+        config = {
+          anonymous = anonymous.id
+        }
+      }
+
+      bp.plugins:insert {
+        name = "key-auth",
+        route = {
+          id = route4.id,
         },
         config = {
           anonymous = anonymous.id
@@ -225,7 +247,8 @@ for _, strategy in helpers.each_strategy() do
 
         assert.equal(consumer.id, json.headers[lower(constants.HEADERS.CONSUMER_ID)])
         assert.equal(consumer.username, json.headers[lower(constants.HEADERS.CONSUMER_USERNAME)])
-        assert.equal(nil, json.headers[constants.HEADERS.CONSUMER_CUSTOM_ID])
+        assert.equal(nil, json.headers[lower(constants.HEADERS.CONSUMER_CUSTOM_ID)])
+        assert.equal(nil, json.headers[lower(constants.HEADERS.AUTHENTICATED_GROUPS)])
       end)
     end)
 
@@ -235,7 +258,7 @@ for _, strategy in helpers.each_strategy() do
         local request = {
           method = "GET",
           path = "/headers",
-          headers = { host = "httpbin.org", },
+          headers = { host = "mockbin.org", },
         }
 
         -- make a request with a valid key, grab the cookie for later
@@ -252,7 +275,7 @@ for _, strategy in helpers.each_strategy() do
         assert.response(res).has.status(200)
 
         local json = cjson.decode(assert.res_status(200, res))
-        assert.equal('agents, doubleagents', json.headers['x-authenticated-groups'])
+        assert.equal('agents, doubleagents', json.headers[lower(constants.HEADERS.AUTHENTICATED_GROUPS)])
       end)
     end)
   end)
