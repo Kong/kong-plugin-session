@@ -11,6 +11,25 @@ local KongSessionHandler = {
 }
 
 
+local function get_authenticated_groups()
+  local authenticated_groups = ngx.ctx.authenticated_groups
+  if authenticated_groups == nil then
+    return nil
+  end
+
+  assert(type(authenticated_groups) == "table",
+         "invalid authenticated_groups, a table was expected")
+
+  local groups = {}
+  for i = 1, #authenticated_groups do
+    groups[i] = authenticated_groups[i]
+    groups[authenticated_groups[i]] = authenticated_groups[i]
+  end
+
+  return groups
+end
+
+
 function KongSessionHandler:header_filter(conf)
   local credential = kong.client.get_credential()
   local consumer = kong.client.get_consumer()
@@ -24,7 +43,7 @@ function KongSessionHandler:header_filter(conf)
   local credential_id = credential.id
   local consumer_id = consumer and consumer.id
   local s = kong.ctx.shared.authenticated_session
-  local groups = kong.client.get_authenticated_groups()
+  local groups = get_authenticated_groups()
 
   -- if session exists and the data in the session matches the ctx then
   -- don't worry about saving the session data or sending cookie
