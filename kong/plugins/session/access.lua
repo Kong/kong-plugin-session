@@ -33,6 +33,7 @@ local function authenticate(consumer, credential_id, groups)
 
   if groups then
     set_header(constants.HEADERS.AUTHENTICATED_GROUPS, table.concat(groups, ", "))
+    ngx.ctx.authenticated_groups = groups
   else
     clear_header(constants.HEADERS.AUTHENTICATED_GROUPS)
   end
