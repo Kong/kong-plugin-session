@@ -1,5 +1,5 @@
 local storage = require "kong.plugins.session.storage.kong"
-local session = require "resty.session"
+local resty_session = require "resty.session"
 local cjson = require "cjson"
 
 
@@ -41,12 +41,12 @@ function _M.open_session(conf)
     -- old sessions will have their ttl updated, which will discard the item
     -- after "cookie_discard" period.
     opts.strategy = "regenerate"
-    s = session.new(opts)
+    s = resty_session.new(opts)
     s.storage = storage.new(s)
     s:open()
   else
     opts.storage = conf.storage
-    s = session.open(opts)
+    s = resty_session.open(opts)
   end
 
   return s
