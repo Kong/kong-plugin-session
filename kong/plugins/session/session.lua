@@ -1,6 +1,5 @@
 local storage = require "kong.plugins.session.storage.kong"
 local resty_session = require "resty.session"
-local cjson = require "cjson"
 
 
 local kong = kong
