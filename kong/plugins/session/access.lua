@@ -14,7 +14,12 @@ local function authenticate(consumer, credential_id, groups)
   local set_header = kong.service.request.set_header
   local clear_header = kong.service.request.clear_header
 
-  set_header(constants.HEADERS.CONSUMER_ID, consumer.id)
+  if consumer.id then
+    set_header(constants.HEADERS.CONSUMER_ID, consumer.id)
+  else
+    clear_header(constants.HEADERS.CONSUMER_ID)
+  end
+
   if consumer.custom_id then
     set_header(constants.HEADERS.CONSUMER_CUSTOM_ID, consumer.custom_id)
   else
@@ -34,15 +39,26 @@ local function authenticate(consumer, credential_id, groups)
     clear_header(constants.HEADERS.AUTHENTICATED_GROUPS)
   end
 
+  local credential
   if credential_id then
-    local credential = {id = credential_id or consumer.id, consumer_id = consumer.id}
-    set_header(constants.HEADERS.ANONYMOUS, true)
-    kong.client.authenticate(consumer, credential)
+    credential = {
+      id          = credential_id,
+      consumer_id = consumer.id
+    }
 
-    return
+    set_header(constants.HEADERS.ANONYMOUS, true)
+
+    if constants.HEADERS.CREDENTIAL_IDENTIFIER then
+      set_header(constants.HEADERS.CREDENTIAL_IDENTIFIER, credential.id)
+    end
+
+  else
+    if constants.HEADERS.CREDENTIAL_IDENTIFIER then
+      clear_header(constants.HEADERS.CREDENTIAL_IDENTIFIER)
+    end
   end
 
-  kong.client.authenticate(consumer, nil)
+  kong.client.authenticate(consumer, credential)
 end
 
 
