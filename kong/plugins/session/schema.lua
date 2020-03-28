@@ -1,10 +1,12 @@
 local typedefs = require "kong.db.schema.typedefs"
 local Schema = require "kong.db.schema"
+local utils = require "kong.tools.utils"
 
-local utils = require("kong.tools.utils")
+
 local char = string.char
 local rand = math.random
 local encode_base64 = ngx.encode_base64
+
 
 local samesite = Schema.define {
   type = "string",

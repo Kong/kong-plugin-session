@@ -1,6 +1,11 @@
 local constants = require "kong.constants"
 local kong_session = require "kong.plugins.session.session"
+
+
+local ngx = ngx
 local kong = kong
+local concat = table.concat
+
 
 local _M = {}
 
@@ -32,7 +37,7 @@ local function authenticate(consumer, credential_id, groups)
   end
 
   if groups then
-    set_header(constants.HEADERS.AUTHENTICATED_GROUPS, table.concat(groups, ", "))
+    set_header(constants.HEADERS.AUTHENTICATED_GROUPS, concat(groups, ", "))
     ngx.ctx.authenticated_groups = groups
   else
     clear_header(constants.HEADERS.AUTHENTICATED_GROUPS)
