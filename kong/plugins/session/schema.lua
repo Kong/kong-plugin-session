@@ -14,6 +14,7 @@ local samesite = Schema.define {
   one_of = {
     "Strict",
     "Lax",
+    "None",
     "off",
   }
 }
