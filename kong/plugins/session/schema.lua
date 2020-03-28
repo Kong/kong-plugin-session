@@ -45,6 +45,7 @@ return {
           },
           { cookie_name = { type = "string", default = "session" } },
           { cookie_lifetime = { type = "number", default = 3600 } },
+          { cookie_idletime = { type = "number" } },
           { cookie_renew = { type = "number", default = 600 } },
           { cookie_path = { type = "string", default = "/" } },
           { cookie_domain = { type = "string" } },

@@ -21,6 +21,7 @@ local function get_opts(conf)
     storage = storage,
     cookie  = {
       lifetime = conf.cookie_lifetime,
+      idletime = conf.cookie_idletime,
       path     = conf.cookie_path,
       domain   = conf.cookie_domain,
       samesite = conf.cookie_samesite,
