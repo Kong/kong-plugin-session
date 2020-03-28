@@ -10,15 +10,6 @@ local concat = table.concat
 local _M = {}
 
 
-local function load_consumer(consumer_id)
-  local result, err = kong.db.consumers:select { id = consumer_id }
-  if not result then
-    return nil, err
-  end
-  return result
-end
-
-
 local function authenticate(consumer, credential_id, groups)
   local set_header = kong.service.request.set_header
   local clear_header = kong.service.request.clear_header
@@ -79,7 +70,7 @@ function _M.execute(conf)
 
   local consumer_cache_key = kong.db.consumers:cache_key(cid)
   local consumer, err = kong.cache:get(consumer_cache_key, nil,
-                                       load_consumer, cid)
+                                       kong.client.load_consumer, cid)
 
   if err then
     kong.log.err("could not load consumer: ", err)
