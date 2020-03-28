@@ -7,7 +7,7 @@ local lower = string.lower
 
 for _, strategy in helpers.each_strategy() do
   describe("Plugin: Session (access) [#" .. strategy .. "]", function()
-    local client, consumer
+    local client, consumer, credential
 
     lazy_setup(function()
       local bp, db = helpers.get_db_utils(strategy, {
@@ -84,7 +84,7 @@ for _, strategy in helpers.each_strategy() do
 
       consumer = db.consumers:insert({username = "coop"})
 
-      bp.keyauth_credentials:insert {
+      credential = bp.keyauth_credentials:insert {
         key = "kong",
         consumer = {
           id = consumer.id,
@@ -247,6 +247,10 @@ for _, strategy in helpers.each_strategy() do
 
         assert.equal(consumer.id, json.headers[lower(constants.HEADERS.CONSUMER_ID)])
         assert.equal(consumer.username, json.headers[lower(constants.HEADERS.CONSUMER_USERNAME)])
+        if constants.HEADERS.CREDENTIAL_IDENTIFIER then
+          assert.equal(credential.id, json.headers[lower(constants.HEADERS.CREDENTIAL_IDENTIFIER)])
+        end
+        assert.equal(nil, json.headers[lower(constants.HEADERS.ANONYMOUS)])
         assert.equal(nil, json.headers[lower(constants.HEADERS.CONSUMER_CUSTOM_ID)])
         assert.equal(nil, json.headers[lower(constants.HEADERS.AUTHENTICATED_GROUPS)])
       end)

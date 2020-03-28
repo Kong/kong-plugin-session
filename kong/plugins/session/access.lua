@@ -46,13 +46,15 @@ local function authenticate(consumer, credential_id, groups)
       consumer_id = consumer.id
     }
 
-    set_header(constants.HEADERS.ANONYMOUS, true)
+    clear_header(constants.HEADERS.ANONYMOUS)
 
     if constants.HEADERS.CREDENTIAL_IDENTIFIER then
       set_header(constants.HEADERS.CREDENTIAL_IDENTIFIER, credential.id)
     end
 
   else
+    set_header(constants.HEADERS.ANONYMOUS, true)
+
     if constants.HEADERS.CREDENTIAL_IDENTIFIER then
       clear_header(constants.HEADERS.CREDENTIAL_IDENTIFIER)
     end
