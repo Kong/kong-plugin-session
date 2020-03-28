@@ -51,10 +51,14 @@ end
 
 
 function _M.execute(conf)
-  local s = kong_session.open_session(conf)
+  local s, present, reason = kong_session.open_session(conf)
+  if not present then
+    if reason then
+      kong.log.debug("session not present (", reason, ")")
+    else
+      kong.log.debug("session not present")
+    end
 
-  if not s.present then
-    kong.log.debug("session not present")
     return
   end
 

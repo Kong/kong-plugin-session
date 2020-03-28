@@ -1,4 +1,4 @@
-local storage = require "kong.plugins.session.storage.kong"
+local kong_storage = require "kong.plugins.session.storage.kong"
 local resty_session = require "resty.session"
 
 
@@ -10,9 +10,15 @@ local _M = {}
 
 
 local function get_opts(conf)
+  local storage = conf.storage
+  if storage == "kong" then
+    storage = kong_storage
+  end
+
   return {
     name = conf.cookie_name,
     secret = conf.secret,
+    storage = storage,
     cookie = {
       lifetime = conf.cookie_lifetime,
       path     = conf.cookie_path,
@@ -30,25 +36,7 @@ end
 --- Open a session based on plugin config
 -- @returns resty.session session object
 function _M.open_session(conf)
-  local opts = get_opts(conf)
-  local s
-
-  if conf.storage == 'kong' then
-    -- Required strategy for kong adapter which will allow for :regenerate
-    -- method to keep sessions around during renewal period to allow for
-    -- concurrent requests. When client exchanges cookie for new cookie,
-    -- old sessions will have their ttl updated, which will discard the item
-    -- after "cookie_discard" period.
-    opts.strategy = "regenerate"
-    s = resty_session.new(opts)
-    s.storage = storage.new(s)
-    s:open()
-  else
-    opts.storage = conf.storage
-    s = resty_session.open(opts)
-  end
-
-  return s
+  return resty_session.open(get_opts(conf))
 end
 
 
