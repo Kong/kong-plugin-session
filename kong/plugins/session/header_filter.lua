@@ -35,7 +35,6 @@ function _M.execute(conf)
 
   local credential_id = credential.id
   local consumer_id = consumer and consumer.id
-  local groups = get_authenticated_groups()
 
   -- if session exists and the data in the session matches the ctx then
   -- don't worry about saving the session data or sending cookie
@@ -51,6 +50,7 @@ function _M.execute(conf)
   -- session is no longer valid
   -- create new session and save the data / send the Set-Cookie header
   if consumer_id then
+    local groups = get_authenticated_groups()
     s = s or kong_session.open_session(conf)
     kong_session.store_session_data(s,
                                     consumer_id,
