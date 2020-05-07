@@ -204,7 +204,8 @@ for _, strategy in helpers.each_strategy() do
             request.headers.cookie = cookie
             res = assert(client:send(request))
             assert.response(res).has.status(200)
-            did_renew = res.headers['Set-Cookie'] ~= nil
+            did_renew = did_renew or res.headers['Set-Cookie'] ~= nil
+
             cookie = res.headers['Set-Cookie'] or cookie
             ngx.sleep(step)
           end
@@ -232,7 +233,7 @@ for _, strategy in helpers.each_strategy() do
 
         -- renewal period, make sure requests still come through and
         -- if set-cookie header comes through, attach it to subsequent requests
-        assert.is_true(send_requests(request, 5, 0.5))
+        assert.is_true(send_requests(request, 7, 0.5))
       end)
 
       it("destroys session on logout", function()
