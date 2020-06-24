@@ -17,7 +17,7 @@ description = {
 
 dependencies = {
   "lua >= 5.1",
-  "lua-resty-session == 3.5",
+  "lua-resty-session == 3.6",
   --"kong >= 1.2.0",
 }
 
