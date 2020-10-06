@@ -10,308 +10,316 @@ end
 
 
 for _, strategy in helpers.each_strategy() do
-  describe("Plugin: Session (kong storage adapter) [#" .. strategy .. "]", function()
-    local client, bp, db
+  for buffering_request, buffering_response, buffering_label in helpers.each_buffering() do
+    describe("Plugin: Session (kong storage adapter) [#" .. strategy .. "](".. buffering_label ..")", function()
+      local client, bp, db
 
-    lazy_setup(function()
-      bp, db = helpers.get_db_utils(strategy, {
-        "sessions",
-        "plugins",
-        "routes",
-        "services",
-        "consumers",
-        "keyauth_credentials",
-      }, { "ctx-checker" })
+      lazy_setup(function()
+        bp, db = helpers.get_db_utils(strategy, {
+          "sessions",
+          "plugins",
+          "routes",
+          "services",
+          "consumers",
+          "keyauth_credentials",
+        }, { "ctx-checker" })
 
-      local route1 = bp.routes:insert {
-        paths    = {"/test1"},
-        hosts = {"httpbin.org"}
-      }
-
-      local route2 = bp.routes:insert {
-        paths    = {"/test2"},
-        hosts = {"httpbin.org"}
-      }
-
-      local route3 = bp.routes:insert {
-        paths    = {"/headers"},
-        hosts = {"httpbin.org"},
-      }
-
-      assert(bp.plugins:insert {
-        name = "session",
-        route = {
-          id = route1.id,
-        },
-        config = {
-          storage = "kong",
-          secret = "ultra top secret session",
-        }
-      })
-
-      assert(bp.plugins:insert {
-        name = "session",
-        route = {
-          id = route2.id,
-        },
-        config = {
-          secret = "super secret session secret",
-          storage = "kong",
-          cookie_renew = 600,
-          cookie_lifetime = 604,
-        }
-      })
-
-      assert(bp.plugins:insert {
-        name = "session",
-        route = {
-          id = route3.id,
-        },
-        config = {
-          storage = "kong",
-          secret = "ultra top secret session",
-        }
-      })
-
-      bp.plugins:insert {
-        name = "ctx-checker",
-        route = { id = route3.id },
-        config = {
-          ctx_kind      = "ngx.ctx",
-          ctx_set_field = "authenticated_groups",
-          ctx_set_array = { "beatles", "ramones" },
-        }
-      }
-
-      local consumer = bp.consumers:insert { username = "coop" }
-      bp.keyauth_credentials:insert {
-        key = "kong",
-        consumer = {
-          id = consumer.id
-        },
-      }
-
-      local anonymous = bp.consumers:insert { username = "anon" }
-      bp.plugins:insert {
-        name = "key-auth",
-        route = {
-          id = route1.id,
-        },
-        config = {
-          anonymous = anonymous.id
-        }
-      }
-
-      bp.plugins:insert {
-        name = "key-auth",
-        route = {
-          id = route2.id,
-        },
-        config = {
-          anonymous = anonymous.id
-        }
-      }
-
-      bp.plugins:insert {
-        name = "key-auth",
-        route = {
-          id = route3.id,
-        },
-        config = {
-          anonymous = anonymous.id
-        }
-      }
-
-      bp.plugins:insert {
-        name = "request-termination",
-        consumer = {
-          id = anonymous.id,
-        },
-        config = {
-          status_code = 403,
-          message = "So it goes.",
-        }
-      }
-
-      assert(helpers.start_kong {
-        plugins = "bundled, session, ctx-checker",
-        database   = strategy,
-        nginx_conf = "spec/fixtures/custom_nginx.template",
-      })
-    end)
-
-    lazy_teardown(function()
-      helpers.stop_kong()
-    end)
-
-    before_each(function()
-      client = helpers.proxy_ssl_client()
-    end)
-
-    after_each(function()
-      if client then client:close() end
-    end)
-
-    describe("kong adapter - ", function()
-      it("kong adapter stores consumer", function()
-        local res, cookie
-        local request = {
-          method = "GET",
-          path = "/test1/status/200",
-          headers = { host = "httpbin.org", },
+        local route1 = bp.routes:insert {
+          paths    = {"/test1"},
+          hosts = {"httpbin.org"},
+          request_buffering = buffering_request,
+          response_buffering = buffering_response,
         }
 
-        -- make sure the anonymous consumer can't get in (request termination)
-        res = assert(client:send(request))
-        assert.response(res).has.status(403)
+        local route2 = bp.routes:insert {
+          paths    = {"/test2"},
+          hosts = {"httpbin.org"},
+          request_buffering = buffering_request,
+          response_buffering = buffering_response,
+        }
 
-        -- make a request with a valid key, grab the cookie for later
-        request.headers.apikey = "kong"
-        res = assert(client:send(request))
-        assert.response(res).has.status(200)
-        cookie = assert.response(res).has.header("Set-Cookie")
+        local route3 = bp.routes:insert {
+          paths    = {"/headers"},
+          hosts = {"httpbin.org"},
+          request_buffering = buffering_request,
+          response_buffering = buffering_response,
+        }
 
-        ngx.sleep(2)
+        assert(bp.plugins:insert {
+          name = "session",
+          route = {
+            id = route1.id,
+          },
+          config = {
+            storage = "kong",
+            secret = "ultra top secret session",
+          }
+        })
 
-        -- use the cookie without the key to ensure cookie still lets them in
-        request.headers.apikey = nil
-        request.headers.cookie = cookie
-        res = assert(client:send(request))
-        assert.response(res).has.status(200)
+        assert(bp.plugins:insert {
+          name = "session",
+          route = {
+            id = route2.id,
+          },
+          config = {
+            secret = "super secret session secret",
+            storage = "kong",
+            cookie_renew = 600,
+            cookie_lifetime = 604,
+          }
+        })
 
-        -- one more time to ensure session was not destroyed or errored out
-        res = assert(client:send(request))
-        assert.response(res).has.status(200)
+        assert(bp.plugins:insert {
+          name = "session",
+          route = {
+            id = route3.id,
+          },
+          config = {
+            storage = "kong",
+            secret = "ultra top secret session",
+          }
+        })
 
-        -- make sure it's in the db
-        local sid = get_sid_from_cookie(cookie)
-        assert.equal(sid, db.sessions:select_by_session_id(sid).session_id)
+        bp.plugins:insert {
+          name = "ctx-checker",
+          route = { id = route3.id },
+          config = {
+            ctx_kind      = "ngx.ctx",
+            ctx_set_field = "authenticated_groups",
+            ctx_set_array = { "beatles", "ramones" },
+          }
+        }
+
+        local consumer = bp.consumers:insert { username = "coop" }
+        bp.keyauth_credentials:insert {
+          key = "kong",
+          consumer = {
+            id = consumer.id
+          },
+        }
+
+        local anonymous = bp.consumers:insert { username = "anon" }
+        bp.plugins:insert {
+          name = "key-auth",
+          route = {
+            id = route1.id,
+          },
+          config = {
+            anonymous = anonymous.id
+          }
+        }
+
+        bp.plugins:insert {
+          name = "key-auth",
+          route = {
+            id = route2.id,
+          },
+          config = {
+            anonymous = anonymous.id
+          }
+        }
+
+        bp.plugins:insert {
+          name = "key-auth",
+          route = {
+            id = route3.id,
+          },
+          config = {
+            anonymous = anonymous.id
+          }
+        }
+
+        bp.plugins:insert {
+          name = "request-termination",
+          consumer = {
+            id = anonymous.id,
+          },
+          config = {
+            status_code = 403,
+            message = "So it goes.",
+          }
+        }
+
+        assert(helpers.start_kong {
+          plugins = "bundled, session, ctx-checker",
+          database   = strategy,
+          nginx_conf = "spec/fixtures/custom_nginx.template",
+        })
       end)
 
-      it("renews cookie", function()
-        local res, cookie
-        local request = {
-          method = "GET",
-          path = "/test2/status/200",
-          headers = { host = "httpbin.org", },
-        }
+      lazy_teardown(function()
+        helpers.stop_kong()
+      end)
 
-        local function send_requests(request, number, step)
-          local did_renew = false
-          cookie = request.headers.cookie
+      before_each(function()
+        client = helpers.proxy_ssl_client()
+      end)
 
-          for _ = 1, number do
-            request.headers.cookie = cookie
-            res = assert(client:send(request))
-            assert.response(res).has.status(200)
-            did_renew = did_renew or res.headers['Set-Cookie'] ~= nil
+      after_each(function()
+        if client then client:close() end
+      end)
 
-            cookie = res.headers['Set-Cookie'] or cookie
-            ngx.sleep(step)
+      describe("kong adapter - ", function()
+        it("kong adapter stores consumer", function()
+          local res, cookie
+          local request = {
+            method = "GET",
+            path = "/test1/status/200",
+            headers = { host = "httpbin.org", },
+          }
+
+          -- make sure the anonymous consumer can't get in (request termination)
+          res = assert(client:send(request))
+          assert.response(res).has.status(403)
+
+          -- make a request with a valid key, grab the cookie for later
+          request.headers.apikey = "kong"
+          res = assert(client:send(request))
+          assert.response(res).has.status(200)
+          cookie = assert.response(res).has.header("Set-Cookie")
+
+          ngx.sleep(2)
+
+          -- use the cookie without the key to ensure cookie still lets them in
+          request.headers.apikey = nil
+          request.headers.cookie = cookie
+          res = assert(client:send(request))
+          assert.response(res).has.status(200)
+
+          -- one more time to ensure session was not destroyed or errored out
+          res = assert(client:send(request))
+          assert.response(res).has.status(200)
+
+          -- make sure it's in the db
+          local sid = get_sid_from_cookie(cookie)
+          assert.equal(sid, db.sessions:select_by_session_id(sid).session_id)
+        end)
+
+        it("renews cookie", function()
+          local res, cookie
+          local request = {
+            method = "GET",
+            path = "/test2/status/200",
+            headers = { host = "httpbin.org", },
+          }
+
+          local function send_requests(request, number, step)
+            local did_renew = false
+            cookie = request.headers.cookie
+
+            for _ = 1, number do
+              request.headers.cookie = cookie
+              res = assert(client:send(request))
+              assert.response(res).has.status(200)
+              did_renew = did_renew or res.headers['Set-Cookie'] ~= nil
+
+              cookie = res.headers['Set-Cookie'] or cookie
+              ngx.sleep(step)
+            end
+
+            return did_renew
           end
 
-          return did_renew
-        end
+          -- make sure the anonymous consumer can't get in (request termination)
+          res = assert(client:send(request))
+          assert.response(res).has.status(403)
 
-        -- make sure the anonymous consumer can't get in (request termination)
-        res = assert(client:send(request))
-        assert.response(res).has.status(403)
+          -- make a request with a valid key, grab the cookie for later
+          request.headers.apikey = "kong"
+          res = assert(client:send(request))
+          assert.response(res).has.status(200)
+          cookie = assert.response(res).has.header("Set-Cookie")
 
-        -- make a request with a valid key, grab the cookie for later
-        request.headers.apikey = "kong"
-        res = assert(client:send(request))
-        assert.response(res).has.status(200)
-        cookie = assert.response(res).has.header("Set-Cookie")
+          ngx.sleep(2)
 
-        ngx.sleep(2)
+          -- use the cookie without the key to ensure cookie still lets them in
+          request.headers.apikey = nil
+          request.headers.cookie = cookie
+          res = assert(client:send(request))
+          assert.response(res).has.status(200)
 
-        -- use the cookie without the key to ensure cookie still lets them in
-        request.headers.apikey = nil
-        request.headers.cookie = cookie
-        res = assert(client:send(request))
-        assert.response(res).has.status(200)
+          -- renewal period, make sure requests still come through and
+          -- if set-cookie header comes through, attach it to subsequent requests
+          assert.is_true(send_requests(request, 7, 0.5))
+        end)
 
-        -- renewal period, make sure requests still come through and
-        -- if set-cookie header comes through, attach it to subsequent requests
-        assert.is_true(send_requests(request, 7, 0.5))
-      end)
-
-      it("destroys session on logout", function()
-        local res, cookie
-        local request = {
-          method = "GET",
-          path = "/test2/status/200",
-          headers = { host = "httpbin.org", },
-        }
-
-        -- make sure the anonymous consumer can't get in (request termination)
-        res = assert(client:send(request))
-        assert.response(res).has.status(403)
-
-        -- make a request with a valid key, grab the cookie for later
-        request.headers.apikey = "kong"
-        res = assert(client:send(request))
-        assert.response(res).has.status(200)
-        cookie = assert.response(res).has.header("Set-Cookie")
-
-        ngx.sleep(2)
-
-        -- use the cookie without the key to ensure cookie still lets them in
-        request.headers.apikey = nil
-        request.headers.cookie = cookie
-        res = assert(client:send(request))
-        assert.response(res).has.status(200)
-
-        -- session should be in the table initially
-        local sid = get_sid_from_cookie(cookie)
-        assert.equal(sid, db.sessions:select_by_session_id(sid).session_id)
-
-        -- logout request
-        res = assert(client:send({
-          method = "DELETE",
-          path = "/test2/status/200?session_logout=true",
-          headers = {
-            cookie = cookie,
-            host = "httpbin.org",
+        it("destroys session on logout", function()
+          local res, cookie
+          local request = {
+            method = "GET",
+            path = "/test2/status/200",
+            headers = { host = "httpbin.org", },
           }
-        }))
 
-        assert.response(res).has.status(200)
+          -- make sure the anonymous consumer can't get in (request termination)
+          res = assert(client:send(request))
+          assert.response(res).has.status(403)
 
-        local found, err = db.sessions:select_by_session_id(sid)
+          -- make a request with a valid key, grab the cookie for later
+          request.headers.apikey = "kong"
+          res = assert(client:send(request))
+          assert.response(res).has.status(200)
+          cookie = assert.response(res).has.header("Set-Cookie")
 
-        -- logged out, no sessions should be in the table, without errors
-        assert.is_nil(found)
-        assert.is_nil(err)
-      end)
+          ngx.sleep(2)
 
-      it("stores authenticated_groups", function()
-        local res, cookie
-        local request = {
-          method = "GET",
-          path = "/headers",
-          headers = { host = "httpbin.org", },
-        }
+          -- use the cookie without the key to ensure cookie still lets them in
+          request.headers.apikey = nil
+          request.headers.cookie = cookie
+          res = assert(client:send(request))
+          assert.response(res).has.status(200)
 
-        res = assert(client:send(request))
-        assert.response(res).has.status(403)
+          -- session should be in the table initially
+          local sid = get_sid_from_cookie(cookie)
+          assert.equal(sid, db.sessions:select_by_session_id(sid).session_id)
 
-        -- make a request with a valid key, grab the cookie for later
-        request.headers.apikey = "kong"
-        res = assert(client:send(request))
-        assert.response(res).has.status(200)
-        cookie = assert.response(res).has.header("Set-Cookie")
+          -- logout request
+          res = assert(client:send({
+            method = "DELETE",
+            path = "/test2/status/200?session_logout=true",
+            headers = {
+              cookie = cookie,
+              host = "httpbin.org",
+            }
+          }))
 
-        ngx.sleep(2)
+          assert.response(res).has.status(200)
 
-        request.headers.apikey = nil
-        request.headers.cookie = cookie
-        res = assert(client:send(request))
-        assert.response(res).has.status(200)
+          local found, err = db.sessions:select_by_session_id(sid)
 
-        local json = cjson.decode(assert.res_status(200, res))
-        assert.equal('beatles, ramones', json.headers['x-authenticated-groups'])
+          -- logged out, no sessions should be in the table, without errors
+          assert.is_nil(found)
+          assert.is_nil(err)
+        end)
+
+        it("stores authenticated_groups", function()
+          local res, cookie
+          local request = {
+            method = "GET",
+            path = "/headers",
+            headers = { host = "httpbin.org", },
+          }
+
+          res = assert(client:send(request))
+          assert.response(res).has.status(403)
+
+          -- make a request with a valid key, grab the cookie for later
+          request.headers.apikey = "kong"
+          res = assert(client:send(request))
+          assert.response(res).has.status(200)
+          cookie = assert.response(res).has.header("Set-Cookie")
+
+          ngx.sleep(2)
+
+          request.headers.apikey = nil
+          request.headers.cookie = cookie
+          res = assert(client:send(request))
+          assert.response(res).has.status(200)
+
+          local json = cjson.decode(assert.res_status(200, res))
+          assert.equal('beatles, ramones', json.headers['x-authenticated-groups'])
+        end)
       end)
     end)
-  end)
+  end
 end
