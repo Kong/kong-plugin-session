@@ -1,8 +1,14 @@
+local type TODO = any
 local setmetatable = setmetatable
 local get_phase    = ngx.get_phase
 local timer_at     = ngx.timer.at
 local kong         = kong
 
+-- local record storage
+--   metamethod new: any
+--   metamethod __index: any
+--   get: function(id: string): any
+-- end
 
 local storage = {}
 
@@ -19,7 +25,7 @@ function storage.new(session)
 end
 
 
-local function load_session(id)
+local function load_session(id)--: KongSession
   return kong.db.sessions:select_by_session_id(id)
 end
 
@@ -28,6 +34,7 @@ function storage:get(id)
   local cache_key = kong.db.sessions:cache_key(id)
   return kong.cache:get(cache_key, nil, load_session, id)
 end
+
 
 
 function storage:open(id)
